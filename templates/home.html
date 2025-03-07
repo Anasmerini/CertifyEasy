@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CertifyEasy - Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #F5F7FA; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px; text-align: center; }
+        .hero { background: linear-gradient(135deg, #007BFF 0%, #0056D2 100%); color: white; padding: 60px 20px; border-radius: 15px; }
+        .hero h1 { font-size: 48px; margin: 0 0 20px; }
+        .hero p { font-size: 20px; margin: 0 0 30px; }
+        .cta { display: flex; justify-content: center; gap: 20px; }
+        .cta a { padding: 15px 40px; background-color: #FFFFFF; color: #007BFF; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: 700; transition: all 0.3s; }
+        .cta a:hover { background-color: #E9ECEF; transform: scale(1.05); }
+        .cta .login { background-color: transparent; border: 2px solid #FFFFFF; color: #FFFFFF; }
+        .cta .login:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .benefits { margin: 40px 0; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; }
+        .benefit { width: 200px; }
+        .benefit h3 { font-size: 20px; color: #343A40; margin: 10px 0; }
+        .benefit p { font-size: 14px; color: #6C757D; }
+        footer { margin-top: 40px; font-size: 14px; color: #6C757D; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>CertifyEasy</h1>
+            <p>Master CIA Part 1 with AI-powered practice.</p>
+            <div class="cta">
+                <a href="{{ url_for('signup') }}">Sign Up</a>
+                <a href="{{ url_for('login') }}" class="login">Login</a>
+            </div>
+        </div>
+        <div class="benefits">
+            <div class="benefit">
+                <h3>AI-Driven</h3>
+                <p>Smart questions target your weak spots.</p>
+            </div>
+            <div class="benefit">
+                <h3>Track Progress</h3>
+                <p>See your mastery grow in real-time.</p>
+            </div>
+            <div class="benefit">
+                <h3>Exam-Ready</h3>
+                <p>Practice designed for CIA success.</p>
+            </div>
+        </div>
+        <footer>© 2025 CertifyEasy | Powered by xAI</footer>
+    </div>
+</body>
+</html>

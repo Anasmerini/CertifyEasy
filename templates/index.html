@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CertifyEasy - Practice Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #F5F7FA; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 40px auto; text-align: center; }
+        h1 { font-size: 32px; color: #0056D2; margin-bottom: 20px; }
+        #subject-select { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+        .subject-card { background: #FFFFFF; padding: 20px; border-radius: 15px; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); width: 200px; cursor: pointer; transition: transform 0.2s; }
+        .subject-card:hover { transform: scale(1.05); }
+        .progress-circle { width: 60px; height: 60px; border-radius: 50%; background: conic-gradient(#007BFF calc(var(--percent) * 1%), #E9ECEF 0); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; }
+        .progress-circle span { font-size: 18px; color: #343A40; }
+        .subject-card p { font-size: 16px; color: #343A40; margin: 0; }
+        #question, #feedback, #summary { display: none; margin-top: 20px; }
+        #question h2 { font-size: 24px; color: #0056D2; }
+        #question form { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        #question label { font-size: 16px; color: #343A40; }
+        #question button { padding: 10px 20px; background-color: #007BFF; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        #question button:hover { background-color: #0056D2; }
+        #feedback p { font-size: 16px; margin: 10px 0; }
+        #summary h2 { font-size: 24px; color: #0056D2; }
+        #summary pre { text-align: left; background: #E9ECEF; padding: 15px; border-radius: 8px; }
+        #summary button { padding: 10px 20px; background-color: #007BFF; color: white; border: none; border-radius: 8px; cursor: pointer; margin: 10px; }
+        #summary button:hover { background-color: #0056D2; }
+        .logout { margin-top: 20px; }
+        .logout a { color: #007BFF; text-decoration: none; font-size: 16px; }
+        .logout a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, {{ username }}!</h1>
+        <div id="subject-select">
+            {% for key, value in subjects.items() %}
+                <div class="subject-card" onclick="startPractice('{{ value }}')">
+                    <div class="progress-circle" style="--percent: {{ progress.get(value, 0) | round }}">
+                        <span>{{ progress.get(value, 0) | round }}%</span>
+                    </div>
+                    <p>{{ value }}</p>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="logout">
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+        <div id="question"></div>
+        <div id="feedback"></div>
+        <div id="summary"></div>
+    </div>
+
+    <script>
+        let currentSubject = null;
+        let currentQuestion = null;
+        let wrongAnswers = [];
+
+        function startPractice(subject) {
+            fetch('/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `subject=${encodeURIComponent(subject)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) { alert(data.error); return; }
+                currentSubject = data.subject;
+                currentQuestion = data;
+                wrongAnswers = [];
+                showQuestion(data);
+            })
+            .catch(error => console.error('Start error:', error));
+        }
+
+        function showQuestion(data) {
+            console.log("Showing question:", data);
+            const qDiv = document.getElementById('question');
+            document.getElementById('subject-select').style.display = 'none';
+            document.getElementById('feedback').style.display = 'none';
+            document.getElementById('summary').style.display = 'none';
+            qDiv.innerHTML = `
+                <h2>${data.subject} (${data.index + 1}/${data.total})</h2>
+                ${data.message ? `<p>${data.message}</p>` : ""}
+                <p>${data.question.question}</p>
+                <form id="answer-form">
+                    ${data.question.options.map((opt, i) => `
+                        <label><input type="radio" name="answer" value="${i + 1}"> ${opt}</label><br>
+                    `).join('')}
+                    <button type="submit">Submit</button>
+                </form>
+            `;
+            qDiv.style.display = 'block';
+            document.getElementById('answer-form').addEventListener('submit', submitAnswer);
+        }
+
+        function submitAnswer(event) {
+    event.preventDefault();
+    const form = event.target;
+    const answer = form.querySelector('input[name="answer"]:checked');
+    if (!answer) { alert('Please select an answer!'); return; }
+    const questionData = JSON.stringify(currentQuestion.next_question || currentQuestion.question);  // Use next_question if available
+    fetch('/answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `subject=${encodeURIComponent(currentSubject)}&answer=${answer.value}&index=${currentQuestion.index}&question=${encodeURIComponent(questionData)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        currentQuestion = data;
+        showFeedback(data);
+    })
+    .catch(error => console.error('Answer error:', error));
+}
+
+        function showFeedback(data) {
+            console.log("Showing feedback:", data);
+            const fDiv = document.getElementById('feedback');
+            const incorrectStyle = data.correct ? "" : "color: red;";
+            const feedbackHTML = `
+                <p style="${incorrectStyle}">${data.user_answer} - ${data.correct ? "Correct" : "Incorrect"}</p>
+                <p style="color: green;">Correct Answer: ${data.correct_answer}</p>
+                <p>${data.explanation}</p>
+            `;
+            fDiv.innerHTML = feedbackHTML;
+            fDiv.style.display = 'block';
+            if (data.finished) {
+                showSummary(data);
+            } else {
+                const qDiv = document.getElementById('question');
+                qDiv.innerHTML = `
+                    <h2>${data.subject} (${data.index + 1}/${data.total})</h2>
+                    ${data.message ? `<p>${data.message}</p>` : ""}
+                    <p>${data.next_question.question}</p>
+                    <form id="answer-form">
+                        ${data.next_question.options.map((opt, i) => `
+                            <label><input type="radio" name="answer" value="${i + 1}"> ${opt}</label><br>
+                        `).join('')}
+                        <button type="submit">Submit</button>
+                    </form>
+                `;
+                qDiv.style.display = 'block';
+                document.getElementById('answer-form').addEventListener('submit', submitAnswer);
+            }
+        }
+
+        function showSummary(data) {
+            console.log("Showing summary:", data);
+            const sDiv = document.getElementById('summary');
+            sDiv.style.display = 'block';
+            let weakSpotMsg = data.wrong_count > 0 ? 
+                `You had ${data.wrong_count} weak spot${data.wrong_count > 1 ? 's' : ''} during practice.` : 
+                "Perfect! No weak spots detected!";
+            let html = `
+                <h2>${data.subject} Recap</h2>
+                <p>Correct: ${data.correct_count}/${data.total}</p>
+                <p>Mastery: ${Math.round(data.mastery_percentage)}%</p>
+                <p>Longest Streak: ${data.longest_streak}</p>
+                <p>Weak Spots Found: ${data.wrong_count}</p>
+                <p class="weak-spot">${weakSpotMsg}</p>
+                <div>
+                    <button onclick="restartSubject('${data.subject}')">Review ${data.subject} Again</button>
+                    <button onclick="backToDashboard()">Back to Dashboard</button>
+                </div>
+            `;
+            sDiv.innerHTML = html;
+            document.getElementById('question').style.display = 'none';
+            document.getElementById('feedback').style.display = 'none';
+        }
+
+        function restartSubject(subject) {
+            startPractice(subject);
+        }
+
+        function backToDashboard() {
+            document.getElementById('subject-select').style.display = 'flex';
+            document.getElementById('summary').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
